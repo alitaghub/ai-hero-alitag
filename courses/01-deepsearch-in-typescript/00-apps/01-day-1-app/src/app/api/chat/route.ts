@@ -25,36 +25,36 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     messages: Array<Message>;
-    chatId?: string;
+    chatId: string;
+    isNewChat?: boolean;
   };
-  const { messages, chatId } = body;
+  const { messages, chatId, isNewChat = false } = body;
 
   if (!messages.length) {
     return new Response("No messages provided", { status: 400 });
   }
 
-  // If no chatId is provided, create a new chat with the user's message
-  let currentChatId = chatId;
-  const isNewChat = !chatId;
-  
-  if (!currentChatId) {
-    const newChatId = crypto.randomUUID();
+  // Use the provided chatId (now always a string)
+  const currentChatId = chatId;
 
-    await upsertChat({
-      userId: session.user.id,
-      chatId: newChatId,
-      title: messages[messages.length - 1]!.content.slice(0, 50) + "...",
-      messages: messages, // Only save the user's message initially
-    });
-    currentChatId = newChatId;
-  } // Verify the chat belongs to the user
-  else {
+  // If this is NOT a new chat, verify the chat belongs to the user
+  if (!isNewChat) {
     const chat = await db.query.chats.findFirst({
       where: eq(chats.id, currentChatId),
     });
     if (!chat || chat.userId !== session.user.id) {
       return new Response("Chat not found or unauthorized", { status: 404 });
     }
+  }
+
+  // If this is a new chat, create it in the database before streaming
+  if (isNewChat) {
+    await upsertChat({
+      userId: session.user.id,
+      chatId: currentChatId,
+      title: messages[messages.length - 1]!.content.slice(0, 50) + "...",
+      messages: messages,
+    });
   }
   return createDataStreamResponse({
     execute: async (dataStream) => {

@@ -12,7 +12,8 @@ import { isNewChatCreated } from "~/lib/utils";
 interface ChatProps {
   userName: string;
   isAuthenticated: boolean;
-  chatId: string | undefined;
+  chatId: string;
+  isNewChat: boolean;
   initialMessages?: Message[];
 }
 
@@ -20,6 +21,7 @@ export const ChatPage = ({
   userName,
   isAuthenticated,
   chatId,
+  isNewChat,
   initialMessages = [],
 }: ChatProps) => {
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
@@ -31,6 +33,7 @@ export const ChatPage = ({
       initialMessages,
       body: {
         chatId,
+        isNewChat,
       },
     });
 
@@ -38,11 +41,11 @@ export const ChatPage = ({
   useEffect(() => {
     if (initialMessages.length > 0) {
       setMessages(initialMessages);
-    } else if (!chatId) {
+    } else if (isNewChat) {
       // Clear messages when starting a new chat
       setMessages([]);
     }
-  }, [chatId, initialMessages, setMessages]);
+  }, [chatId, initialMessages, isNewChat, setMessages]);
 
   // Listen for new chat creation and redirect
   useEffect(() => {
