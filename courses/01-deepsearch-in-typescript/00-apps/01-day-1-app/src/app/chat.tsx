@@ -38,7 +38,9 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
             return (
               <ChatMessage
                 key={index}
-                parts={message.parts || [{ type: "text", text: message.content }]}
+                parts={
+                  message.parts || [{ type: "text", text: message.content }]
+                }
                 role={message.role}
                 userName={userName}
               />
