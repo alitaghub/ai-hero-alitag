@@ -35,6 +35,8 @@ export async function POST(request: Request) {
 
   // If no chatId is provided, create a new chat with the user's message
   let currentChatId = chatId;
+  const isNewChat = !chatId;
+  
   if (!currentChatId) {
     const newChatId = crypto.randomUUID();
 
@@ -56,26 +58,15 @@ export async function POST(request: Request) {
   }
   return createDataStreamResponse({
     execute: async (dataStream) => {
-      const { messages, chatId } = body;
+      // If this is a new chat, notify the frontend
+      if (isNewChat) {
+        dataStream.writeData({
+          type: "NEW_CHAT_CREATED",
+          chatId: currentChatId,
+        });
+      }
 
-      // Generate a new chatId if not provided
-      const currentChatId = chatId || crypto.randomUUID();
-
-      // Create a title from the first user message
-      const firstUserMessage = messages.find(m => m.role === "user");
-      const title = firstUserMessage?.content.slice(0, 100) || "New Chat";
-
-      // Create/update the chat in the database before streaming
-      // This protects against broken streams and ensures the chat exists
-      await upsertChat({
-        userId: session.user.id,
-        chatId: currentChatId,
-        title,
-        messages: messages.map(msg => ({
-          ...msg,
-          parts: msg.parts || [{ type: "text", text: msg.content }],
-        })),
-      });
+      const { messages } = body;
 
       const result = streamText({
         model,
